@@ -1,28 +1,31 @@
-import { useEffect } from 'react';
-import { ModalOverlay, ModalWindow } from './Modal.styled';
+import React, { useCallback, useEffect } from 'react';
+import {ModalOverlay, ModalWindow} from './Modal.styled';
 
-export const Modal = ({ modalImage: { src, alt }, closeModal }) => {
- 
-  const closeByEscape = e => {
-    if (e.code === 'Escape') {
-      closeModal();
-    }
-  };
+const Modal = ({ closeModal, modalImage: { src, alt } }) => {
+  const closeByEscape = useCallback(
+    (e) => {
+      if (e.code === 'Escape') {
+        closeModal();
+      }
+    },
+    [closeModal]
+  );
 
-  const closeByBackdrop = e => {
-    if (e.currentTarget === e.target) {
-      closeModal();
-    }
-  };
+  const closeByBackdrop = useCallback(
+    (event) => {
+      if (event.currentTarget === event.target) {
+        closeModal();
+      }
+    },
+    [closeModal]
+  );
 
   useEffect(() => {
     window.addEventListener('keydown', closeByEscape);
-
     return () => {
       window.removeEventListener('keydown', closeByEscape);
     };
   }, [closeByEscape]);
-
 
   return (
     <ModalOverlay onClick={closeByBackdrop}>

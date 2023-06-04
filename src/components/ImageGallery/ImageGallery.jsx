@@ -1,112 +1,86 @@
+import React, { useState, useEffect } from 'react';
 import Button from '../Button/Button';
 import ImageGalleryItem from '../ImageGalleryItem/ImageGalleryItem';
-import  Loader from '../Loader/Loader';
+import Loader from '../Loader/Loader';
 import { Modal } from '../Modal/Modal';
-import PropTypes from 'prop-types';
-import { Component } from 'react';
+
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { fetchImage } from '../../Api/ApiGet';
+import { ImageGaleryStyled } from './ImageGallery.styled';
 
-import {ImageGaleryStyled} from './ImageGallery.styled'
+const ImageGallery = ({ searchImage }) => {
+  const [gallery, setGallery] = useState([]);
+  const [searchCopy, setSearchCopy] = useState(null);
 
- class ImageGallery extends Component {
-  state = {
-    gallery: [],
-    searchCopy: null,
-    error: null,
-    page: 1,
-    totalHits: 0,
-    isLoading: false,
-    modalImage: null,
-  };
-  static getDerivedStateFromProps(props, state) {
-    if (props.searchImage !== state.searchCopy) {
-      return {
-        page: 1,
-        searchCopy: props.searchImage,
-        isLoading: true,
-        error: null,
-      };
+  const [page, setPage] = useState(0);
+  const [totalHits, setTotalHits] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [modalImage, setModalImage] = useState(null);
+useEffect(() => {
+    if (searchImage !== searchCopy) {
+      setPage(1);
+      setSearchCopy(searchImage);
+      setIsLoading(true);
     }
-    return null;
-  }
-  componentDidUpdate(prevProps, prevState) {
-    if (
-      prevProps.searchImage !== this.props.searchImage ||
-      (prevState.page !== this.state.page && this.state.page !== 1)
-    ) {
-      this.getImage();
-    }
-  }
+ 
+  }, [searchImage, searchCopy]);
 
-  getImage = async () => {
+   
+  useEffect(() => {
+    if (searchImage || (searchImage && page !== 1)) getImage();
+  }, [page, searchCopy]);
+
+
+  const getImage = async () => {
     try {
-      const { hits, totalHits } = await fetchImage(
-        this.props.searchImage,
-        this.state.page
-      );
+      const { hits, totalHits } = await fetchImage(searchImage, page);
 
       if (!totalHits) {
         return toast.error('Something went wrong:) Please try again.');
       }
 
-      this.setState(prev => ({
-        gallery: this.state.page === 1 ? hits : [...prev.gallery, ...hits],
-        totalHits,
-      }));
+      setGallery(page === 1 ? hits : [...gallery, ...hits]);
+      setTotalHits(totalHits);
     } catch (error) {
-      this.setState({ error: error.message });
+      toast.error('Something went wrong:) Please try again.');
     } finally {
-      this.setState({ isLoading: false });
+      setIsLoading(false);
     }
   };
 
-  changePage = () => {
-      this.setState(prev => ({ page: prev.page + 1 }));
-      return toast.error('Something went wrong:) Please try again.')
-  };
-  
 
- openModal = data => {
-    this.setState({ modalImage: data });
+  const changePage = () => {
+    setPage(prev => prev + 1);
+    return toast.error('Something went wrong:) Please try again.');
   };
 
-  closeModal = () => {
-    this.setState({ modalImage: null });
+  const openModal = data => {
+    setModalImage(data);
   };
 
-  render() {
-    const { gallery, isLoading, searchCopy, totalHits, modalImage } =
-      this.state;
-    return (
-      <div>
-        {!totalHits && <ToastContainer />}
-        {searchCopy && isLoading ? (
-          <Loader />
-        ) : (
-          <ImageGaleryStyled>
-            {gallery && (
-              <ImageGalleryItem
-                gallery={gallery}
-                openModal={this.openModal}
-              />
-            )}
-          </ImageGaleryStyled>
-        )}
+  const closeModal = () => {
+    setModalImage(null);
+  };
 
-        {totalHits > gallery.length && <Button changePage={this.changePage} />}
-        {modalImage && (
-          <Modal closeModal={this.closeModal} modalImage={modalImage} />
-        )}
-      </div>
-    );
-  }
-}
+  return (
+    <div>
+      {!totalHits && <ToastContainer />}
+      {searchCopy && isLoading ? (
+        <Loader />
+      ) : (
+        <ImageGaleryStyled>
+          {gallery && (
+            <ImageGalleryItem gallery={gallery} openModal={openModal} />
+          )}
+        </ImageGaleryStyled>
+      )}{' '}
+      {totalHits > gallery.length && <Button changePage={changePage} />}
+      {modalImage && <Modal closeModal={closeModal} modalImage={modalImage} />}
+    </div>
+  );
+};
+
 
 
 export default ImageGallery;
-
-ImageGallery.propTypes = {
-  searchImage: PropTypes.string.isRequired,
-};
